@@ -333,5 +333,5 @@ export function buildAceSetSlotGcode (
   temperature: number
 ): string {
   const cleanMaterial = material.trim().toUpperCase()
-  return `ACE_SET_SLOT INDEX=${index} MATERIAL=${cleanMaterial} COLOR=${color.join(',')} TEMP=${Math.round(temperature)}`
+  return `ACE_SET_SLOT T=${index} MATERIAL=${cleanMaterial} COLOR=${color.join(',')} TEMP=${Math.round(temperature)}`
 }

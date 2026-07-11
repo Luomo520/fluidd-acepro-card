@@ -762,6 +762,7 @@ createApp({
                 }
             }
             if (anySuccess) {
+                await this.loadStatus();
                 this.showNotification(this.t('notifications.commandSuccess', { command: 'ACE_SAVE_INVENTORY' }), 'success');
             } else {
                 this.showNotification(this.t('notifications.commandErrorGeneric'), 'error');
@@ -978,11 +979,8 @@ createApp({
                 return;
             }
             const payload = {};
-            if (toolNumber !== null && toolNumber !== undefined) {
-                payload.T = toolNumber;
-            } else {
-                payload.INDEX = slotIndex;
-            }
+            payload.INSTANCE = instanceIndex;
+            payload.INDEX = slotIndex;
             payload.COLOR = `${rgb[0]},${rgb[1]},${rgb[2]}`; // ACE driver expects R,G,B or named color
             const safeMaterial = (typeof material === 'string' && material.trim()) ? material.trim() : 'PLA';
             let safeTemp = Number(temp);
@@ -1008,11 +1006,8 @@ createApp({
             const rgb = this.hexToRgb(hex);
             const tempDefault = this.materialOptions[material] || currentTemp || 200;
             const payload = {};
-            if (toolNumber !== null && toolNumber !== undefined) {
-                payload.T = toolNumber;
-            } else {
-                payload.INDEX = slotIndex;
-            }
+            payload.INSTANCE = instanceIndex;
+            payload.INDEX = slotIndex;
             payload.COLOR = Array.isArray(rgb) ? `${rgb[0]},${rgb[1]},${rgb[2]}` : hex || '255,255,255';
             payload.MATERIAL = material && material.trim() ? material.trim() : 'PLA';
             payload.TEMP = Math.max(1, Math.min(300, tempDefault));
@@ -1036,11 +1031,8 @@ createApp({
                 temp = 200;
             }
             const payload = {};
-            if (toolNumber !== null && toolNumber !== undefined) {
-                payload.T = toolNumber;
-            } else {
-                payload.INDEX = slotIndex;
-            }
+            payload.INSTANCE = instanceIndex;
+            payload.INDEX = slotIndex;
             payload.COLOR = Array.isArray(rgb) ? `${rgb[0]},${rgb[1]},${rgb[2]}` : hex || '255,255,255';
             payload.MATERIAL = currentMaterial && currentMaterial.trim() ? currentMaterial.trim() : 'PLA';
             payload.TEMP = temp;

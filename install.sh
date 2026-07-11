@@ -16,6 +16,7 @@ BACKUP_DIR="$TARGET_PARENT/.fluidd-acepro-backups"
 ACTIVE_FILE="$STATE_DIR/active_backup"
 ZH_ACTIVE_FILE="$STATE_DIR/active_chinese_backup"
 MARKER="$FLUIDD_ROOT/.fluidd-acepro-installed"
+PANEL_VERSION_FILE="$PACKAGE_DIR/VERSION"
 
 line() {
   printf '%s\n' '+----------------------------------------------------------+'
@@ -26,6 +27,56 @@ header() {
   line
   printf '%s\n' '|          Fluidd ACE Pro 中文管理工具                    |'
   line
+  printf '  Fluidd 版本 : %s\n' "$(detect_fluidd_version)"
+  printf '  驱动版本    : %s\n' "$(detect_driver_version)"
+  printf '  面板版本    : %s\n' "$(detect_panel_version)"
+  line
+}
+
+first_line() {
+  IFS= read -r value < "$1" || true
+  printf '%s\n' "${value:-未知}"
+}
+
+detect_fluidd_version() {
+  if [ -s "$FLUIDD_ROOT/.version" ]; then
+    first_line "$FLUIDD_ROOT/.version"
+  elif [ -s "$PAYLOAD/.version" ]; then
+    first_line "$PAYLOAD/.version"
+  else
+    printf '%s\n' '未知'
+  fi
+}
+
+detect_driver_version() {
+  for version_file in "$ACEPRO_ROOT/VERSION" "$ACEPRO_ROOT/.version" "$ACEPRO_ROOT/version.txt"; do
+    if [ -s "$version_file" ]; then
+      first_line "$version_file"
+      return
+    fi
+  done
+
+  if [ -d "$ACEPRO_ROOT/.git" ] && command -v git >/dev/null 2>&1; then
+    driver_version=$(git -C "$ACEPRO_ROOT" describe --tags --always --dirty 2>/dev/null || true)
+    if [ -n "$driver_version" ]; then
+      printf '%s\n' "$driver_version"
+      return
+    fi
+  fi
+
+  if [ -d "$ACEPRO_ROOT" ]; then
+    printf '%s\n' '已安装（未提供版本）'
+  else
+    printf '%s\n' '未安装'
+  fi
+}
+
+detect_panel_version() {
+  if [ -s "$PANEL_VERSION_FILE" ]; then
+    first_line "$PANEL_VERSION_FILE"
+  else
+    printf '%s\n' '开发版'
+  fi
 }
 
 ok() {
@@ -92,6 +143,17 @@ check_driver() {
   [ "$failed" -eq 0 ]
 }
 
+link_ace_page_assets() {
+  target_root=$1
+  for file in ace.html ace-dashboard.css ace-dashboard.js ace-dashboard-config.js vue.global.prod.js favicon.svg; do
+    [ -f "$ACE_WEB_ROOT/$file" ] || {
+      bad "ACE 页面缺少静态资源: $ACE_WEB_ROOT/$file"
+      return 1
+    }
+    ln -sfn "$ACE_WEB_ROOT/$file" "$target_root/$file"
+  done
+}
+
 install_card() {
   check_driver || {
     bad "请先按 Kobra-S1/ACEPRO 教程完成驱动和 Moonraker 插件安装"
@@ -115,6 +177,7 @@ install_card() {
       cp -a "$path" "$stage/$(basename -- "$path")"
     fi
   done
+  link_ace_page_assets "$stage" || return 1
 
   if [ -f "$MARKER" ] && [ -s "$ACTIVE_FILE" ]; then
     moved_current="$BACKUP_DIR/upgrade-$stamp"
@@ -209,6 +272,13 @@ install_chinese_page() {
     return 1
   fi
 
+  if ! link_ace_page_assets "$FLUIDD_ROOT"; then
+    cp "$backup/ace.html" "$ACE_WEB_ROOT/ace.html"
+    cp "$backup/ace-dashboard.js" "$ACE_WEB_ROOT/ace-dashboard.js"
+    bad "独立页面资源链接失败，已恢复操作前页面"
+    return 1
+  fi
+
   if [ ! -s "$ZH_ACTIVE_FILE" ]; then
     printf '%s\n' "$backup" > "$ZH_ACTIVE_FILE.tmp"
     mv "$ZH_ACTIVE_FILE.tmp" "$ZH_ACTIVE_FILE"
@@ -257,21 +327,19 @@ show_status() {
 menu() {
   while true; do
     header
-    printf '%s\n' '|  1. 安装 / 更新 Fluidd ACE Pro 卡片                   |'
+    printf '%s\n' '|  1. 安装 / 更新 Fluidd ACE Pro 面板                   |'
     printf '%s\n' '|  2. 卸载卡片并恢复原版 Fluidd                       |'
-    printf '%s\n' '|  3. 将 ace.html 独立控制页面转换为中文               |'
-    printf '%s\n' '|  4. 还原中文化前的 ace.html 控制页面                 |'
-    printf '%s\n' '|  5. 检测驱动与安装状态                               |'
+    printf '%s\n' '|  3. 独立控制界面翻译                                 |'
+    printf '%s\n' '|  4. 独立控制界面翻译还原                             |'
     printf '%s\n' '|  0. 退出                                              |'
     line
-    printf '请选择 [0-5]: '
+    printf '请选择 [0-4]: '
     IFS= read -r choice || exit 0
     case "$choice" in
-      1) confirm '确认安装或更新 Fluidd ACE Pro 卡片？' && install_card || true; pause_menu ;;
+      1) confirm '确认安装或更新 Fluidd ACE Pro 面板？安装前将自动检测驱动。' && install_card || true; pause_menu ;;
       2) confirm '确认卸载并恢复原版 Fluidd？' && uninstall_card || true; pause_menu ;;
-      3) confirm '确认备份当前页面并转换为中文？' && install_chinese_page || true; pause_menu ;;
-      4) confirm '确认备份当前中文版并还原原页面？' && restore_chinese_page || true; pause_menu ;;
-      5) show_status; pause_menu ;;
+      3) confirm '确认备份当前独立控制界面并翻译为中文？' && install_chinese_page || true; pause_menu ;;
+      4) confirm '确认备份当前界面并还原翻译前版本？' && restore_chinese_page || true; pause_menu ;;
       0) exit 0 ;;
       *) bad "无效选项: $choice"; pause_menu ;;
     esac

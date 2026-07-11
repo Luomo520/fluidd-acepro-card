@@ -201,7 +201,7 @@ export default class AceProMixin extends StateMixin {
     const color = this.aceHexColorToRgb(colorHex)
     const gcode = buildAceSetSlotGcode(index, material, color, temperature)
     await this.executeAceCommand('ACE_SET_SLOT', {
-      INDEX: index,
+      T: index,
       MATERIAL: material.trim().toUpperCase(),
       COLOR: color.join(','),
       TEMP: Math.round(temperature),
@@ -209,7 +209,7 @@ export default class AceProMixin extends StateMixin {
   }
 
   async clearSlot (index: number) {
-    await this.executeAceCommand('ACE_SET_SLOT', { INDEX: index, EMPTY: 1 }, WAIT_SLOT_ACTION, `ACE_SET_SLOT INDEX=${index} EMPTY=1`)
+    await this.executeAceCommand('ACE_SET_SLOT', { T: index, EMPTY: 1 }, WAIT_SLOT_ACTION, `ACE_SET_SLOT T=${index} EMPTY=1`)
   }
 
   async unloadCurrentSlot () {

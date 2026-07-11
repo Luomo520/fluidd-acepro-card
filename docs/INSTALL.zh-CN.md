@@ -18,7 +18,8 @@ moonraker.conf:  ~/printer_data/config/moonraker.conf
 ## 2. 前置条件
 
 必须先完成 [Kobra-S1/ACEPRO](https://github.com/Kobra-S1/ACEPRO) 驱动安装，
-并确认 ACE 硬件已经正常连接。菜单的检测项目包括：
+并确认 ACE 硬件已经正常连接。选择“安装 / 更新 Fluidd ACE Pro 面板”后，
+脚本会在安装前自动检测：
 
 1. `~/ACEPRO` 驱动目录存在。
 2. `~/moonraker/moonraker/components/ace_status.py` 已安装。
@@ -55,10 +56,10 @@ chmod +x install.sh uninstall.sh
 
 建议操作顺序：
 
-1. 选择 `5`，检查 ACEPRO 驱动和 API。
-2. 全部显示 `[ OK ]` 后选择 `1`，安装 Fluidd 卡片。
+1. 在菜单顶部确认 Fluidd、驱动和面板版本信息。
+2. 选择 `1`，脚本会自动检测 ACEPRO 驱动和 API，通过后安装 Fluidd 面板。
 3. 浏览器打开 Fluidd，强制刷新一次，确认仪表盘出现 `ACE Pro` 卡片。
-4. 如需中文独立页面，重新运行菜单并选择 `3`。
+4. 如需翻译中文独立控制界面，重新运行菜单并选择 `3`。
 
 卡片地址：
 
@@ -106,7 +107,8 @@ Fluidd。也可以执行：
 ./install.sh --uninstall
 ```
 
-菜单选择 `4` 会先备份当前中文页面，再恢复最近一次中文化前的两个文件：
+菜单中的“独立控制界面翻译还原”会先备份当前中文页面，再恢复最近一次
+翻译前的两个文件：
 
 ```sh
 ./install.sh --restore-zh
@@ -160,4 +162,3 @@ Linux 文件系统路径。
 ```
 
 该命令只读取目录、配置和 API，不执行安装。
-

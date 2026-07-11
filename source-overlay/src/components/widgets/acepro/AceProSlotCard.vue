@@ -85,13 +85,15 @@
     <div class="acepro-slot-card__editor">
       <v-row dense>
         <v-col cols="7">
-          <v-text-field
+          <v-combobox
             v-model="localMaterial"
+            :items="materialOptions"
             dense
             outlined
             hide-details
             label="材料"
             :disabled="disabled"
+            @input="markDirty"
           />
         </v-col>
         <v-col cols="5">
@@ -105,6 +107,7 @@
             label="温度"
             suffix="C"
             :disabled="disabled"
+            @input="markDirty"
           />
         </v-col>
       </v-row>
@@ -115,6 +118,7 @@
           class="acepro-slot-card__picker"
           type="color"
           :disabled="disabled"
+          @input="markDirty"
         >
         <v-text-field
           v-model="localColor"
@@ -124,6 +128,7 @@
           class="acepro-slot-card__color-field"
           label="颜色"
           :disabled="disabled"
+          @input="markDirty"
         />
       </div>
     </div>
@@ -151,7 +156,7 @@
         color="error"
         :disabled="disabled"
         :loading="busy"
-        @click="$emit('empty', slot.index)"
+        @click="emitClear"
       >
         清空
       </app-btn>
@@ -180,6 +185,24 @@ export default class AceProSlotCard extends Vue {
   localMaterial = ''
   localTemperature = 0
   localColor = '#000000'
+  isDirty = false
+
+  readonly materialOptions = [
+    'PLA',
+    'PLA+',
+    'PETG',
+    'PETG-CF',
+    'ABS',
+    'ASA',
+    'TPU',
+    'PA',
+    'PA-CF',
+    'PET-CF',
+    'PC',
+    'PBT-CF',
+    'PVA',
+    'HIPS',
+  ]
 
   mounted () {
     this.syncFromProps()
@@ -187,6 +210,8 @@ export default class AceProSlotCard extends Vue {
 
   @Watch('slot', { immediate: true, deep: true })
   onSlotChange () {
+    if (this.isDirty && !this.localValuesMatchSlot) return
+    this.isDirty = false
     this.syncFromProps()
   }
 
@@ -213,7 +238,19 @@ export default class AceProSlotCard extends Vue {
   }
 
   get canSave (): boolean {
-    return this.localMaterial.trim().length > 0 && this.localTemperature > 0
+    return this.localMaterial.trim().length > 0 &&
+      this.localTemperature > 0 &&
+      /^#[0-9a-f]{6}$/i.test(this.localColor)
+  }
+
+  get slotColorHex (): string {
+    return `#${this.slot.color.map(value => value.toString(16).padStart(2, '0')).join('')}`.toUpperCase()
+  }
+
+  get localValuesMatchSlot (): boolean {
+    return this.localMaterial.trim().toUpperCase() === this.slot.material.trim().toUpperCase() &&
+      Number(this.localTemperature) === Number(this.slot.temperature) &&
+      this.localColor.toUpperCase() === this.slotColorHex
   }
 
   get statusBadgeClass (): string {
@@ -241,10 +278,19 @@ export default class AceProSlotCard extends Vue {
     })
   }
 
+  emitClear () {
+    this.isDirty = false
+    this.$emit('empty', this.slot.index)
+  }
+
+  markDirty () {
+    this.isDirty = true
+  }
+
   private syncFromProps () {
     this.localMaterial = this.slot.material
     this.localTemperature = this.slot.temperature
-    this.localColor = `#${this.slot.color.map(value => value.toString(16).padStart(2, '0')).join('')}`.toUpperCase()
+    this.localColor = this.slotColorHex
   }
 }
 </script>

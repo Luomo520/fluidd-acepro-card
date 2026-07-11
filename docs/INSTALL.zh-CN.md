@@ -2,7 +2,7 @@
 
 ## 1. 适用范围
 
-本教程适用于运行 Klipper、Moonraker、Fluidd 的 DIY 3D 打印机。安装包只替换
+本教程适用于运行 Klipper、Moonraker、Fluidd 的 DIY 3D 打印机。安装脚本只替换
 Fluidd 的静态网页目录，不修改 `printer.cfg`，也不会重启 Klipper、Moonraker
 或 Nginx。
 
@@ -25,6 +25,7 @@ moonraker.conf:  ~/printer_data/config/moonraker.conf
 2. `~/moonraker/moonraker/components/ace_status.py` 已安装。
 3. `moonraker.conf` 中存在 `[ace_status]`。
 4. `http://127.0.0.1:7125/server/ace/status` 返回 HTTP 200。
+5. 当前 Fluidd 版本与仓库内的定制构建版本一致。
 
 任何一项失败，卡片安装都会停止，不会替换 Fluidd。
 
@@ -34,16 +35,21 @@ moonraker.conf:  ~/printer_data/config/moonraker.conf
 curl http://127.0.0.1:7125/server/ace/status
 ```
 
-## 3. 上传与解压
+## 3. 使用 Git 下载
 
-从 GitHub Releases 下载 `fluidd-acepro-package.tar.gz`，通过 SCP、SFTP 或
-Fluidd 文件管理上传到打印机用户的主目录，然后执行：
+打印机需要能够访问 GitHub，并已安装 Git。通过 SSH 登录打印机后执行：
 
 ```sh
 cd ~
-tar -xzf fluidd-acepro-package.tar.gz
-cd fluidd-acepro-package
-chmod +x install.sh uninstall.sh
+git clone --depth 1 https://github.com/Luomo520/fluidd-acepro-card.git
+cd fluidd-acepro-card
+```
+
+如果仓库已经存在，使用以下命令获取更新：
+
+```sh
+cd ~/fluidd-acepro-card
+git pull --ff-only
 ```
 
 ## 4. 使用字符菜单
@@ -51,14 +57,14 @@ chmod +x install.sh uninstall.sh
 运行：
 
 ```sh
-./install.sh
+bash install.sh
 ```
 
 建议操作顺序：
 
 1. 在菜单顶部确认 Fluidd、驱动和面板版本信息。
 2. 选择 `1`，脚本会自动检测 ACEPRO 驱动和 API，通过后安装 Fluidd 面板。
-3. 浏览器打开 Fluidd，强制刷新一次，确认仪表盘出现 `ACE Pro` 卡片。
+3. 浏览器打开 Fluidd，强制刷新一次，确认左侧菜单和仪表盘出现 `ACE Pro`。
 4. 如需翻译中文独立控制界面，重新运行菜单并选择 `3`。
 
 卡片地址：
@@ -104,14 +110,14 @@ Moonraker 的 `7125` 端口只提供 API，不能用
 Fluidd。也可以执行：
 
 ```sh
-./install.sh --uninstall
+bash install.sh --uninstall
 ```
 
 菜单中的“独立控制界面翻译还原”会先备份当前中文页面，再恢复最近一次
 翻译前的两个文件：
 
 ```sh
-./install.sh --restore-zh
+bash install.sh --restore-zh
 ```
 
 卡片卸载和独立页面还原互不影响。
@@ -125,13 +131,13 @@ FLUIDD_ROOT=/home/pi/fluidd \
 ACEPRO_ROOT=/home/pi/ACEPRO \
 MOONRAKER_ROOT=/home/pi/moonraker \
 MOONRAKER_CONF=/home/pi/printer_data/config/moonraker.conf \
-./install.sh
+bash install.sh
 ```
 
 如果 ACE 网页不在驱动默认目录，可额外设置：
 
 ```sh
-ACE_WEB_ROOT=/实际/ace_status_integration/web ./install.sh --install-zh
+ACE_WEB_ROOT=/实际/ace_status_integration/web bash install.sh --install-zh
 ```
 
 ## 8. 常见问题
@@ -140,6 +146,25 @@ ACE_WEB_ROOT=/实际/ace_status_integration/web ./install.sh --install-zh
 
 Fluidd 使用 PWA 缓存。先按 `Ctrl+F5` 强制刷新；仍未更新时，清除此站点的
 缓存和 Service Worker 后重新打开。
+
+### 更新 Fluidd 后 ACE Pro 消失
+
+官方 Fluidd 更新会覆盖定制构建和安装标记。更新完成后重新执行：
+
+```sh
+cd ~/fluidd-acepro-card
+git pull --ff-only
+bash install.sh
+```
+
+菜单顶部若显示“已被 Fluidd 更新覆盖，需要重新安装”，选择 `1`。安装器会先
+备份更新后的官方 Fluidd，再部署兼容构建。
+
+### 安装完成但没有 ACE Pro 页面
+
+运行 `bash install.sh --status`。新版安装器会检查 ACE 构建文件以及 Nginx
+实际提供的入口文件。如果脚本显示安装成功但浏览器仍没有入口，请清除该站点
+的缓存和 Service Worker，然后重新打开 Fluidd。
 
 ### 提示 ACE API 不可用
 
@@ -158,7 +183,7 @@ Linux 文件系统路径。
 ### 如何查看状态而不修改文件
 
 ```sh
-./install.sh --status
+bash install.sh --status
 ```
 
 该命令只读取目录、配置和 API，不执行安装。

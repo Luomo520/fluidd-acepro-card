@@ -17,6 +17,7 @@ ACTIVE_FILE="$STATE_DIR/active_backup"
 ZH_ACTIVE_FILE="$STATE_DIR/active_chinese_backup"
 MARKER="$FLUIDD_ROOT/.fluidd-acepro-installed"
 PANEL_VERSION_FILE="$PACKAGE_DIR/VERSION"
+REPOSITORY_URL=${ACEPRO_PANEL_REPOSITORY_URL:-"https://github.com/Luomo520/fluidd-acepro-card.git"}
 
 line() {
   printf '%s\n' '+----------------------------------------------------------+'
@@ -30,6 +31,7 @@ header() {
   printf '  Fluidd 版本 : %s\n' "$(detect_fluidd_version)"
   printf '  驱动版本    : %s\n' "$(detect_driver_version)"
   printf '  面板版本    : %s\n' "$(detect_panel_version)"
+  printf '  安装状态    : %s\n' "$(detect_panel_state)"
   line
 }
 
@@ -41,7 +43,13 @@ first_line() {
 detect_fluidd_version() {
   if [ -s "$FLUIDD_ROOT/.version" ]; then
     first_line "$FLUIDD_ROOT/.version"
-  elif [ -s "$PAYLOAD/.version" ]; then
+  else
+    printf '%s\n' '未知'
+  fi
+}
+
+detect_payload_fluidd_version() {
+  if [ -s "$PAYLOAD/.version" ]; then
     first_line "$PAYLOAD/.version"
   else
     printf '%s\n' '未知'
@@ -77,6 +85,52 @@ detect_panel_version() {
   else
     printf '%s\n' '开发版'
   fi
+}
+
+verify_panel_files() {
+  panel_root=$1
+  [ -f "$panel_root/index.html" ] || return 1
+  [ -f "$panel_root/sw.js" ] || return 1
+  [ -d "$panel_root/assets" ] || return 1
+  find "$panel_root/assets" -maxdepth 1 -type f -name 'AcePro-*.js' | grep -q . || return 1
+  find "$panel_root/assets" -maxdepth 1 -type f -name 'AceProCard-*.js' | grep -q . || return 1
+}
+
+detect_panel_state() {
+  if [ -f "$MARKER" ]; then
+    if verify_panel_files "$FLUIDD_ROOT"; then
+      printf '%s\n' '已安装'
+    else
+      printf '%s\n' '安装不完整，需要重新安装'
+    fi
+  elif [ -s "$ACTIVE_FILE" ]; then
+    printf '%s\n' '已被 Fluidd 更新覆盖，需要重新安装'
+  else
+    printf '%s\n' '未安装'
+  fi
+}
+
+check_fluidd_compatibility() {
+  current_version=$(detect_fluidd_version)
+  payload_version=$(detect_payload_fluidd_version)
+
+  if [ "$current_version" = '未知' ]; then
+    bad "无法识别当前 Fluidd 版本: $FLUIDD_ROOT/.version"
+    return 1
+  fi
+
+  if [ "$payload_version" = '未知' ]; then
+    bad "Git 仓库缺少定制 Fluidd 版本信息: $PAYLOAD/.version"
+    return 1
+  fi
+
+  if [ "$current_version" != "$payload_version" ]; then
+    bad "Fluidd 版本不兼容：当前 $current_version，面板构建基于 $payload_version"
+    bad "请切换到兼容版本，或等待面板仓库提供对应构建"
+    return 1
+  fi
+
+  ok "Fluidd 版本兼容: $current_version"
 }
 
 ok() {
@@ -160,7 +214,9 @@ install_card() {
     return 1
   }
 
-  [ -f "$PAYLOAD/index.html" ] || { bad "安装包缺少 dist/index.html"; return 1; }
+  check_fluidd_compatibility || return 1
+  [ -f "$PAYLOAD/index.html" ] || { bad "Git 仓库缺少 dist/index.html"; return 1; }
+  verify_panel_files "$PAYLOAD" || { bad "Git 仓库中的 Fluidd ACE Pro 构建不完整"; return 1; }
   [ -d "$TARGET_PARENT" ] || { bad "目标父目录不存在: $TARGET_PARENT"; return 1; }
   [ -d "$FLUIDD_ROOT" ] || { bad "Fluidd 目录不存在: $FLUIDD_ROOT"; return 1; }
 
@@ -168,6 +224,7 @@ install_card() {
   stage="$TARGET_PARENT/.${TARGET_NAME}.acepro-stage-$stamp-$$"
   mkdir -p "$STATE_DIR" "$BACKUP_DIR"
   cp -a "$PAYLOAD" "$stage"
+  chmod -R a+rX "$stage"
 
   if [ -e "$FLUIDD_ROOT/config.json" ] || [ -L "$FLUIDD_ROOT/config.json" ]; then
     cp -a "$FLUIDD_ROOT/config.json" "$stage/config.json"
@@ -192,7 +249,8 @@ install_card() {
     return 1
   fi
 
-  printf 'installed_at=%s\nsource=%s\n' "$stamp" "$PACKAGE_DIR" > "$MARKER"
+  printf 'installed_at=%s\npanel_version=%s\nfluidd_version=%s\nsource=%s\nrepository=%s\n' \
+    "$stamp" "$(detect_panel_version)" "$(detect_payload_fluidd_version)" "$PACKAGE_DIR" "$REPOSITORY_URL" > "$MARKER"
   new_active=0
   if [ ! -s "$ACTIVE_FILE" ] || [ ! -f "$moved_current/.fluidd-acepro-installed" ]; then
     printf '%s\n' "$moved_current" > "$ACTIVE_FILE.tmp"
@@ -211,8 +269,21 @@ install_card() {
     return 1
   fi
 
+  entry_asset=$(sed -n 's/.*src="\([^"]*assets\/index-[^"]*\.js\)".*/\1/p' "$FLUIDD_ROOT/index.html" | head -n 1)
+  if [ -z "$entry_asset" ] || ! curl -L -sS --max-time 15 http://127.0.0.1/ | grep -Fq "$entry_asset"; then
+    mv "$FLUIDD_ROOT" "$BACKUP_DIR/failed-install-$stamp"
+    mv "$moved_current" "$FLUIDD_ROOT"
+    if [ "$new_active" -eq 1 ]; then
+      mv "$ACTIVE_FILE" "$STATE_DIR/active_backup.failed-$stamp"
+    fi
+    bad "Nginx 提供的不是刚安装的 Fluidd ACE Pro 页面，已自动回滚"
+    bad "请检查 FLUIDD_ROOT 是否与 Nginx 的静态网页目录一致"
+    return 1
+  fi
+
   ok "ACE Pro Fluidd 卡片安装完成"
   printf '原版恢复点: %s\n' "$(cat "$ACTIVE_FILE")"
+  printf '如果浏览器仍显示旧界面，请执行强制刷新或清除该站点的 Service Worker 缓存。\n'
 }
 
 uninstall_card() {
@@ -246,8 +317,8 @@ uninstall_card() {
 
 install_chinese_page() {
   check_driver || return 1
-  [ -f "$ZH_PAYLOAD/ace.html" ] || { bad "安装包缺少中文版 ace.html"; return 1; }
-  [ -f "$ZH_PAYLOAD/ace-dashboard.js" ] || { bad "安装包缺少中文版 ace-dashboard.js"; return 1; }
+  [ -f "$ZH_PAYLOAD/ace.html" ] || { bad "Git 仓库缺少中文版 ace.html"; return 1; }
+  [ -f "$ZH_PAYLOAD/ace-dashboard.js" ] || { bad "Git 仓库缺少中文版 ace-dashboard.js"; return 1; }
   [ -d "$ACE_WEB_ROOT" ] || { bad "ACE 页面目录不存在: $ACE_WEB_ROOT"; return 1; }
 
   stamp=$(date +%Y%m%d_%H%M%S)
@@ -317,8 +388,9 @@ restore_chinese_page() {
 }
 
 show_status() {
-  printf '\n卡片状态: '
-  if [ -f "$MARKER" ]; then printf '已安装\n'; else printf '未安装\n'; fi
+  printf '\n卡片状态: %s\n' "$(detect_panel_state)"
+  printf '当前 Fluidd: %s\n' "$(detect_fluidd_version)"
+  printf '面板构建基础: %s\n' "$(detect_payload_fluidd_version)"
   printf '中文页面恢复点: '
   if [ -s "$ZH_ACTIVE_FILE" ]; then printf '%s\n' "$(cat "$ZH_ACTIVE_FILE")"; else printf '无\n'; fi
   check_driver || true

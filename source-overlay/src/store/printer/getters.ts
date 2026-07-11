@@ -1196,8 +1196,11 @@ export const getters = {
     return state.printer.AFC != null
   },
 
-  getSupportsAcePro: (state): boolean => {
+  getSupportsAcePro: (state, _getters, rootState): boolean => {
     const printer = state.printer as Record<string, any>
+
+    const hasAceStatusComponent = rootState.server.info.components
+      .includes('ace_status')
 
     const hasAceObject = Object.keys(printer).some((key) => {
       if (!/^ace(?:\s|$)/i.test(key)) return false
@@ -1212,10 +1215,12 @@ export const getters = {
     const variables = printer.save_variables?.variables ?? {}
     const hasAceVariables = (
       variables.ace_inventory != null ||
+      variables.ace_inventory_0 != null ||
+      variables.ace_inventory_1 != null ||
       variables.ace_current_index != null ||
       variables.ace_endless_spool_enabled != null
     )
 
-    return hasAceObject || hasAceConfig || hasAceVariables
+    return hasAceStatusComponent || hasAceObject || hasAceConfig || hasAceVariables
   }
 } satisfies GetterTree<PrinterState, RootState>

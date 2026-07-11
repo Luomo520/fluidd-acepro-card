@@ -7,10 +7,9 @@
       <div>
         <div class="acepro-slot-card__tool">
           T{{ slot.index }}
-          <span class="acepro-slot-card__slot-label">料槽{{ slot.index + 1 }}</span>
-        </div>
-        <div class="acepro-slot-card__material">
-          {{ displayMaterial }}
+          <span class="acepro-slot-card__slot-label">
+            料槽{{ slot.index + 1 }} · {{ displayMaterial }}
+          </span>
         </div>
       </div>
 
@@ -301,12 +300,6 @@ export default class AceProSlotCard extends Vue {
   color: rgba(183, 194, 208, 0.8);
 }
 
-.acepro-slot-card__material {
-  margin-top: 1px;
-  font-size: 12px;
-  color: #dbe3ee;
-}
-
 .acepro-slot-card__badges {
   display: flex;
   flex-wrap: wrap;
@@ -462,6 +455,75 @@ export default class AceProSlotCard extends Vue {
 
   .acepro-slot-card__actions ::v-deep .v-btn {
     min-height: 36px;
+  }
+}
+
+@media (min-width: 961px) {
+  .acepro-slot-card {
+    padding: 6px;
+  }
+
+  .acepro-slot-card__header {
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .acepro-slot-card__tool {
+    font-size: 13px;
+  }
+
+  .acepro-slot-card__slot-label,
+  .acepro-slot-card__meta-row,
+  .acepro-slot-card__editor ::v-deep .v-label,
+  .acepro-slot-card__editor ::v-deep input {
+    font-size: 10px;
+  }
+
+  .acepro-slot-card__badge {
+    padding: 1px 5px;
+    font-size: 9px;
+  }
+
+  .acepro-slot-card__spool {
+    margin-bottom: 4px;
+  }
+
+  .acepro-slot-card__spool-svg {
+    height: 48px;
+  }
+
+  .acepro-slot-card__meta {
+    gap: 3px;
+    margin-bottom: 4px;
+  }
+
+  .acepro-slot-card__meta-row {
+    min-height: 24px;
+    padding: 2px 4px;
+  }
+
+  .acepro-slot-card__editor {
+    margin-bottom: 3px;
+  }
+
+  .acepro-slot-card__editor ::v-deep .v-input__slot {
+    min-height: 30px !important;
+  }
+
+  .acepro-slot-card__color-row {
+    gap: 4px;
+    margin-top: 3px;
+  }
+
+  .acepro-slot-card__picker {
+    width: 26px;
+    height: 26px;
+  }
+
+  .acepro-slot-card__actions ::v-deep .v-btn {
+    min-height: 28px;
+    padding: 0 6px;
+    font-size: 10px;
   }
 }
 </style>

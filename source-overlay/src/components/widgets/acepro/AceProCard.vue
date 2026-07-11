@@ -215,7 +215,7 @@
         </v-row>
       </section>
 
-      <section class="acepro-panel">
+      <section class="acepro-panel acepro-panel--quick">
         <div class="acepro-panel__title">
           快捷操作
         </div>
@@ -570,6 +570,130 @@ export default class AceProCard extends Mixins(AceProMixin) {
   border-radius: 6px;
   background: rgba(12, 16, 21, 0.56);
   border: 1px solid rgba(56, 66, 79, 0.4);
+}
+
+@media (min-width: 961px) {
+  .acepro-card__header {
+    padding: 6px 10px;
+    margin-bottom: 6px;
+  }
+
+  .acepro-card__title {
+    font-size: 15px;
+  }
+
+  .acepro-card__subtitle {
+    font-size: 10px;
+  }
+
+  .acepro-card__connection {
+    padding: 3px 7px;
+    font-size: 10px;
+  }
+
+  .acepro-card__dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .acepro-card__top-grid {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .acepro-panel {
+    padding: 7px;
+    margin-bottom: 6px;
+  }
+
+  .acepro-panel__header {
+    margin-bottom: 4px;
+  }
+
+  .acepro-panel__title {
+    margin-bottom: 4px;
+    font-size: 12px;
+  }
+
+  .acepro-panel__tool-indicator {
+    padding: 2px 6px;
+    font-size: 9px;
+  }
+
+  .acepro-info-grid,
+  .acepro-dryer__status {
+    gap: 3px;
+  }
+
+  .acepro-info-item {
+    min-height: 26px;
+    padding: 3px 5px;
+    font-size: 10px;
+  }
+
+  .acepro-dryer__row {
+    gap: 5px;
+  }
+
+  .acepro-dryer__field label {
+    margin-bottom: 2px;
+    font-size: 10px;
+  }
+
+  .acepro-dryer ::v-deep .v-input__slot {
+    min-height: 32px !important;
+  }
+
+  .acepro-dryer ::v-deep input,
+  .acepro-dryer ::v-deep .v-label,
+  .acepro-dryer ::v-deep .v-input__append-inner {
+    font-size: 11px;
+  }
+
+  .acepro-dryer__status,
+  .acepro-dryer__actions {
+    margin-top: 4px;
+  }
+
+  .acepro-dryer__actions ::v-deep .v-btn,
+  .acepro-quick-actions ::v-deep .v-btn {
+    min-height: 28px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  .acepro-slot-grid {
+    margin: -3px;
+  }
+
+  .acepro-slot-grid__col {
+    padding: 3px;
+  }
+
+  .acepro-panel--slots {
+    margin-bottom: 6px;
+  }
+
+  .acepro-panel--quick {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+  }
+
+  .acepro-panel--quick .acepro-panel__title {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+
+  .acepro-panel--quick .acepro-quick-actions {
+    flex: 1;
+  }
+
+  .acepro-quick-actions__switch {
+    padding: 1px 5px;
+    font-size: 10px;
+  }
 }
 
 @media (max-width: 960px) {

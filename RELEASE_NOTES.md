@@ -1,3 +1,9 @@
+# v0.1.5
+
+- 安装菜单新增“忽略 ACE API 检测并安装面板”，用于 API 暂时返回 502 的环境。
+- 新增 `--install-force` 命令行入口，仅忽略 API 检测，不绕过驱动、Moonraker、Fluidd 版本和构建完整性检查。
+- 强制安装前同样完整备份 Fluidd，并可再次运行工具选择卸载恢复安装前版本。
+
 # v0.1.4
 
 - 修复仅启用 Moonraker `ace_status` 组件时 ACE Pro 页面和卡片入口被隐藏的问题。

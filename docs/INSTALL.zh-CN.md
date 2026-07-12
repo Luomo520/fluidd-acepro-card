@@ -27,7 +27,10 @@ moonraker.conf:  ~/printer_data/config/moonraker.conf
 4. `http://127.0.0.1:7125/server/ace/status` 返回 HTTP 200。
 5. 当前 Fluidd 版本与仓库内的定制构建版本一致。
 
-任何一项失败，卡片安装都会停止，不会替换 Fluidd。
+普通安装中任何一项失败，卡片安装都会停止，不会替换 Fluidd。如果只有第 4 项
+API 检测失败，而驱动目录、Moonraker 组件和配置均已就绪，可以使用菜单选项
+`5` 或 `bash install.sh --install-force` 忽略 API 检测。强制安装不会绕过其他
+检查，且仍会在替换 Fluidd 前创建完整备份。
 
 可以先手工验证 API：
 
@@ -103,6 +106,7 @@ Moonraker 的 `7125` 端口只提供 API，不能用
 ```
 
 脚本不会自动删除这些备份。部署或 HTTP 检查失败时会自动恢复替换前版本。
+普通安装和忽略 API 检测安装使用相同的备份及恢复记录。
 
 ## 6. 卸载与页面还原
 
@@ -174,6 +178,16 @@ bash install.sh
 systemctl restart moonraker
 curl http://127.0.0.1:7125/server/ace/status
 ```
+
+若 API 暂时返回 `502`，但驱动目录、Moonraker 组件和 `[ace_status]` 都已安装，
+可重新运行 `bash install.sh` 并选择 `5`，或执行：
+
+```sh
+bash install.sh --install-force
+```
+
+脚本会先完整备份当前 Fluidd，再部署面板。需要撤销时再次运行脚本选择 `2`，
+或执行 `bash install.sh --uninstall` 恢复安装前版本。
 
 ### Fluidd 不在 `~/fluidd`
 

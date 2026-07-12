@@ -42,20 +42,23 @@ bash install.sh
 +----------------------------------------------------------+
   Fluidd 版本 : v1.37.2
   驱动版本    : 已安装（未提供版本）
-  面板版本    : v0.1.4
+  面板版本    : v0.1.5
   安装状态    : 未安装
 +----------------------------------------------------------+
 |  1. 安装 / 更新 Fluidd ACE Pro 面板                   |
 |  2. 卸载卡片并恢复原版 Fluidd                       |
 |  3. 独立控制界面翻译                                 |
 |  4. 独立控制界面翻译还原                             |
+|  5. 忽略 ACE API 检测并安装面板                      |
 |  0. 退出                                              |
 +----------------------------------------------------------+
 ```
 
 选择 `1` 后，脚本会先检测 ACEPRO 驱动、Moonraker 组件、配置和 API，全部
-通过后才安装面板。需要翻译中文独立控制界面时再选 `3`。完整步骤和故障排查
-见 [中文安装教程](docs/INSTALL.zh-CN.md)。
+通过后才安装面板。API 因代理或启动时序返回非 200 时，可选择 `5` 忽略 API
+检测并安装；该路径仍会备份当前 Fluidd，再次运行脚本选择 `2` 即可还原。
+需要翻译中文独立控制界面时再选 `3`。完整步骤和故障排查见
+[中文安装教程](docs/INSTALL.zh-CN.md)。
 
 官方 Fluidd 更新会覆盖定制网页文件。更新 Fluidd 后再次执行 `git pull` 和
 `bash install.sh`，选择 `1` 即可基于当前兼容版本重新安装。
@@ -65,6 +68,7 @@ bash install.sh
 ```sh
 bash install.sh --status       # 检测驱动和当前安装状态
 bash install.sh --install      # 安装或更新卡片
+bash install.sh --install-force # 忽略 ACE API 检测并安装
 bash install.sh --uninstall    # 卸载卡片并恢复原版 Fluidd
 bash install.sh --install-zh   # 中文化 ace.html 页面
 bash install.sh --restore-zh   # 还原中文化前的页面

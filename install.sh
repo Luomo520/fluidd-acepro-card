@@ -141,6 +141,10 @@ bad() {
   printf '[ 失败 ] %s\n' "$1" >&2
 }
 
+warn() {
+  printf '[ 警告 ] %s\n' "$1" >&2
+}
+
 pause_menu() {
   printf '\n按 Enter 返回菜单...'
   IFS= read -r _answer || true
@@ -156,6 +160,7 @@ confirm() {
 }
 
 check_driver() {
+  ignore_api=${1:-0}
   failed=0
   printf '\n正在检测 Kobra-S1/ACEPRO 驱动...\n'
 
@@ -185,10 +190,14 @@ check_driver() {
     api_code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1:7125/server/ace/status || true)
     if [ "$api_code" = "200" ]; then
       ok "ACE API 可访问: /server/ace/status"
+    elif [ "$ignore_api" -eq 1 ]; then
+      warn "ACE API 不可用，HTTP 状态码: $api_code；已选择忽略 API 检测"
     else
       bad "ACE API 不可用，HTTP 状态码: $api_code"
       failed=1
     fi
+  elif [ "$ignore_api" -eq 1 ]; then
+    warn "系统缺少 curl，已选择忽略 ACE API 检测"
   else
     bad "系统缺少 curl，无法检测 ACE API"
     failed=1
@@ -209,10 +218,15 @@ link_ace_page_assets() {
 }
 
 install_card() {
-  check_driver || {
+  ignore_api=${1:-0}
+  check_driver "$ignore_api" || {
     bad "请先按 Kobra-S1/ACEPRO 教程完成驱动和 Moonraker 插件安装"
     return 1
   }
+
+  if [ "$ignore_api" -eq 1 ]; then
+    warn "正在强制安装面板；ACE API 恢复前，部分状态和控制功能可能不可用"
+  fi
 
   check_fluidd_compatibility || return 1
   [ -f "$PAYLOAD/index.html" ] || { bad "Git 仓库缺少 dist/index.html"; return 1; }
@@ -249,8 +263,10 @@ install_card() {
     return 1
   fi
 
-  printf 'installed_at=%s\npanel_version=%s\nfluidd_version=%s\nsource=%s\nrepository=%s\n' \
-    "$stamp" "$(detect_panel_version)" "$(detect_payload_fluidd_version)" "$PACKAGE_DIR" "$REPOSITORY_URL" > "$MARKER"
+  install_mode=normal
+  [ "$ignore_api" -eq 1 ] && install_mode=ignore-api
+  printf 'installed_at=%s\npanel_version=%s\nfluidd_version=%s\ninstall_mode=%s\nsource=%s\nrepository=%s\n' \
+    "$stamp" "$(detect_panel_version)" "$(detect_payload_fluidd_version)" "$install_mode" "$PACKAGE_DIR" "$REPOSITORY_URL" > "$MARKER"
   new_active=0
   if [ ! -s "$ACTIVE_FILE" ] || [ ! -f "$moved_current/.fluidd-acepro-installed" ]; then
     printf '%s\n' "$moved_current" > "$ACTIVE_FILE.tmp"
@@ -403,15 +419,17 @@ menu() {
     printf '%s\n' '|  2. 卸载卡片并恢复原版 Fluidd                       |'
     printf '%s\n' '|  3. 独立控制界面翻译                                 |'
     printf '%s\n' '|  4. 独立控制界面翻译还原                             |'
+    printf '%s\n' '|  5. 忽略 ACE API 检测并安装面板                      |'
     printf '%s\n' '|  0. 退出                                              |'
     line
-    printf '请选择 [0-4]: '
+    printf '请选择 [0-5]: '
     IFS= read -r choice || exit 0
     case "$choice" in
       1) confirm '确认安装或更新 Fluidd ACE Pro 面板？安装前将自动检测驱动。' && install_card || true; pause_menu ;;
       2) confirm '确认卸载并恢复原版 Fluidd？' && uninstall_card || true; pause_menu ;;
       3) confirm '确认备份当前独立控制界面并翻译为中文？' && install_chinese_page || true; pause_menu ;;
       4) confirm '确认备份当前界面并还原翻译前版本？' && restore_chinese_page || true; pause_menu ;;
+      5) confirm 'ACE API 可能不可用。确认仍要备份当前 Fluidd 并强制安装？' && install_card 1 || true; pause_menu ;;
       0) exit 0 ;;
       *) bad "无效选项: $choice"; pause_menu ;;
     esac
@@ -420,12 +438,13 @@ menu() {
 
 case "${1:-}" in
   --install) install_card ;;
+  --install-force) install_card 1 ;;
   --uninstall) uninstall_card ;;
   --install-zh) install_chinese_page ;;
   --restore-zh) restore_chinese_page ;;
   --status) show_status ;;
   --help|-h)
-    printf '%s\n' '用法: ./install.sh [--install|--uninstall|--install-zh|--restore-zh|--status]'
+    printf '%s\n' '用法: ./install.sh [--install|--install-force|--uninstall|--install-zh|--restore-zh|--status]'
     ;;
   '') menu ;;
   *) bad "未知参数: $1"; exit 2 ;;
